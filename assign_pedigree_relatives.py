@@ -4,12 +4,9 @@ import numpy as np
 
 # input
 matched_ancestors = str(snakemake.input.matched_ancestors)
-#matched_ancestors = 'steps/pedigree/work/matched_ancestors.tsv.gz'
 # output
 assigned_relatives = str(snakemake.output.assigned_relatives)
-#assigned_relatives = 'steps/pedigree/work/assigned_relatives.h5'
 relative_table = str(snakemake.output.relative_table)
-#relative_table = '/home/ryanw/parent_of_origin/ryanw/results/pedigree/relative_table.tsv'
 
 
 dtypes = {
@@ -28,6 +25,7 @@ mrca.columns = ['descendant_x', 'descendant_y', 'gsep_min']
 # only retain relationship at least this recent
 minrels = mrca.merge(matched_ancestors).query('gsep_t == gsep_min')
 # calculate kinship due to each shared ancestor
+# relatedness coefficient is 2x kinship coeffienct 
 minrels['kinship'] = np.power(0.5, minrels['gsep_t']+1)
 
 # find total kinship based on all shared ancestors
@@ -116,6 +114,7 @@ rel_cats = pd.DataFrame({
     'kinship': [x[2] * 0.5**(x[0]+x[1]+1) for x in rel_of_xyz.keys()],
 })
 
+# write these out to a file for reference
 rel_cats.to_csv(relative_table, sep='\t',index=None)
 
 # assign relative categories
@@ -133,6 +132,7 @@ totalrel[['descendant_x','descendant_y']] = totalrel[['descendant_x','descendant
 totalrel[['n_shared_anc','gsep_x', 'gsep_y']] = totalrel[['n_shared_anc','gsep_x', 'gsep_y']].astype(np.int8)
 totalrel[['kinship_sum']] = totalrel[['kinship_sum']].astype(np.float32)
 
+# write data frame out to compressed hdf file
 totalrel.to_hdf(
     assigned_relatives, 
     mode='w', 
